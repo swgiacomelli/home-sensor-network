@@ -20,7 +20,7 @@ Finally the backend services via the MQTT server subscribe to the sensor data pu
 
 ## Tutorial
 
-### [Step 1 - Configuring Sensors](docs/step_1/index.md) [TODO]
+### [Step 1 - Configuring Sensors](docs/step_1/index.md)
 
 ### [Step 2 - Configuring Backend Services](docs/step_2/index.md) [TODO]
 
