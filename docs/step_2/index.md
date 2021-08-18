@@ -174,4 +174,4 @@ Select a meaningful Device ID, such as Bathroom, provide the WiFi connection det
 After the IoT device resets, it should connect to the MQTT server resulting in the published sensor data being saved by the backend services.
 
 
-## [Customizing Dashboards and Monitoring](../step_3/index.md)
+## [Next Step: Customizing Dashboards and Monitoring](../step_3/index.md)
