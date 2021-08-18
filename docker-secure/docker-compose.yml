@@ -1,0 +1,96 @@
+version: "3.9"
+services:
+  mqtt_server:
+    image: eclipse-mosquitto:latest
+    secrets:
+      - mosquitto_crt
+      - mosquitto_key
+    volumes:
+      - "./mosquitto.conf:/mosquitto/config/mosquitto.conf"
+    expose:
+      - "1883"
+      - "9001"
+    ports:
+      - "0.0.0.0:9001:9001"
+  database:
+    image: influxdb:latest
+    entrypoint: /influxdb_helper.sh
+    environment: 
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: iot_user
+      DOCKER_INFLUXDB_INIT_ORG: iot
+      DOCKER_INFLUXDB_INIT_BUCKET: data
+      DOCKER_INFLUXDB_INIT_RETENTION: 1w      
+      INFLUXD_TLS_CERT: /run/secrets/influx_crt
+      INFLUXD_TLS_KEY: /run/secrets/influx_key
+    secrets:
+      - influx_crt
+      - influx_key
+      - influx_token
+      - influx_password
+    volumes:
+      - influx_data:/var/lib/influxdb2
+      - influx_config:/etc/influxdb2
+      - "./influxdb_helper.sh:/influxdb_helper.sh"
+    expose: 
+      - "8086"
+    ports:
+      - "8086:8086"
+  mqtt_consumer:
+    image: telegraf:latest
+    secrets:
+      - mosquitto_crt
+      - mosquitto_key
+    depends_on: 
+      - mqtt_server
+      - database
+    volumes:
+      - "./telegraf.conf:/etc/telegraf/telegraf.conf"
+  dashboard:
+      image: grafana/grafana:latest
+      entrypoint: /grafana_helper.sh
+      environment: 
+        GF_SECURITY_ADMIN_USER: iot_user        
+        GF_SERVER_PROTOCOL: https
+        GF_SERVER_CERT_FILE: /run/secrets/grafana_crt
+        GF_SERVER_CERT_KEY: /run/secrets/grafana_key
+      depends_on: 
+        - database
+      secrets:
+        - grafana_crt
+        - grafana_key
+        - grafana_password
+        - influx_token
+        - influx_password
+        - influx_crt
+      expose:
+        - "3000"
+      ports:
+        - "3000:3000"
+      volumes:
+        - grafana_data:/var/lib/grafana
+        - "./grafana_helper.sh:/grafana_helper.sh"
+        - "./datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml"     
+volumes:
+  influx_data:
+  influx_config:
+  grafana_data:
+secrets:
+  mosquitto_crt:
+    file: ./mqtt_server.crt
+  mosquitto_key:
+    file: ./mqtt_server.key
+  influx_crt:
+    file: ./database.crt
+  influx_key:
+    file: ./database.key
+  influx_token:
+    file: ./influx_token.key
+  influx_password:
+    file: ./influx_password.key
+  grafana_crt:
+    file: ./dashboard.crt
+  grafana_key:
+    file: ./dashboard.key
+  grafana_password:
+    file: ./grafana_password.key

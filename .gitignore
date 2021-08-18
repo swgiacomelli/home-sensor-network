@@ -1,1 +1,5 @@
 .vscode
+*.crt
+*.key
+
+docker-secure/telegraf.conf
