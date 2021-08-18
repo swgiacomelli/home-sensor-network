@@ -16,8 +16,6 @@
 #define DEVICE_ID_PREFIX "IOT_"
 #define SETTINGS_FILE "/settings.json"
 
-#define SETTING_DECL settings_t Settings;
-
 #define CONFIGURE_DEVICE                                                      \
   Serial.begin(115200);                                                       \
   Serial.println();                                                           \
@@ -214,3 +212,5 @@ struct settings_t {
     }
   }
 };
+
+settings_t Settings;
