@@ -3,15 +3,15 @@ services:
   mqtt_server:
     image: eclipse-mosquitto:latest
     secrets:
+      - mosquitto_ca
       - mosquitto_crt
       - mosquitto_key
     volumes:
       - "./mosquitto.conf:/mosquitto/config/mosquitto.conf"
     expose:
-      - "1883"
-      - "9001"
+      - "8883"
     ports:
-      - "0.0.0.0:9001:9001"
+      - "0.0.0.0:8883:8883"
   database:
     image: influxdb:latest
     entrypoint: /influxdb_helper.sh
@@ -38,9 +38,11 @@ services:
       - "8086:8086"
   mqtt_consumer:
     image: telegraf:latest
+    restart: unless-stopped
     secrets:
-      - mosquitto_crt
-      - mosquitto_key
+      - mosquitto_ca
+      - mosquitto_client_crt
+      - mosquitto_client_key
     depends_on: 
       - mqtt_server
       - database
@@ -76,10 +78,16 @@ volumes:
   influx_config:
   grafana_data:
 secrets:
+  mosquitto_ca:
+    file: ./mqtt_ca.crt
   mosquitto_crt:
     file: ./mqtt_server.crt
   mosquitto_key:
     file: ./mqtt_server.key
+  mosquitto_client_crt:
+    file: ./mqtt_client.crt
+  mosquitto_client_key:
+    file: ./mqtt_client.key 
   influx_crt:
     file: ./database.crt
   influx_key:

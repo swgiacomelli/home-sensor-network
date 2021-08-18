@@ -18,11 +18,11 @@
     bucket = "data"
 
   [[inputs.mqtt_consumer]]
-    servers = ["ws://mqtt_server:9001"]
+    servers = ["ssl://mqtt_server:8883"]
     topics = ["sensors/#"]
     data_type = "float"
     data_format = "value"
-    tls_ca = "/run/secrets/mosquitto_crt"
-    tls_cert = "/run/secrets/mosquitto_crt"
-    tls_key = "/run/secrets/mosquitto_key"
+    tls_ca = "/run/secrets/mosquitto_ca"
+    tls_cert = "/run/secrets/mosquitto_client_crt"
+    tls_key = "/run/secrets/mosquitto_client_key"
     insecure_skip_verify = true

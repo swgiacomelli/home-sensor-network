@@ -6,3 +6,6 @@ This creates self-signed certificates and configures securely generated password
 ./generate.sh
 docker-compose up
 ```
+
+*To note the certificate generation script is a mixed bag*
+
