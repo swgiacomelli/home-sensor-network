@@ -165,13 +165,12 @@ In order to launch the backend services, copy the contents of /docker locally an
 docker-compose up
 ```
 
-This will expose the MQTT server on port 1883 on the IP address of the computer running the services - take note of this ip and power up the IoT device with the uploaded sketch. This will cause the IoT device to create a WiFi access point with the network name of the generated device ID which should be IOT_XXXXXXXXXXXX - connect to this network and load the configuration page at http://192.168.4.1 (the IP might be different but it will be printed to the Serial output).
+This will expose the MQTT server on port 1883 on the IP address of the computer running the services - take note of this ip and power up the IoT device with the uploaded sketch. This will cause the IoT device to create a WiFi access point with the network name of the generated device ID which should be IOT_XXXXXXXXXXXX - connect to this network and load the configuration page at https://192.168.4.1 (the IP might be different but it will be printed to the Serial output). **Since the configuration certificates are self-signed you will need to accept the browser warning**
 
 ![Device Configuration](../images/config_page.png)
 
 Select a meaningful Device ID, such as Bathroom, provide the WiFi connection details and use the IP address of the machine running the backend services for the MQTT Server.
 
 After the IoT device resets, it should connect to the MQTT server resulting in the published sensor data being saved by the backend services.
-
 
 ## [Next Step: Customizing Dashboards and Monitoring](../step_3/index.md)

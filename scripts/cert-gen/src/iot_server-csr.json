@@ -1,0 +1,16 @@
+{
+    "CN": "iot_server",
+    "key": {
+      "algo": "rsa",
+      "size": 2048
+    },
+    "names": [
+    {
+      "C": "CA",
+      "L": "Montreal",
+      "O": "IOT",
+      "OU": "IOT-SERVER",
+      "ST": "Quebec"
+    }
+   ]
+  }

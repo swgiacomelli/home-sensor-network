@@ -1,10 +1,14 @@
 #pragma once
 
 #include <Arduino.h>
-#include <ESP8266WebServer.h>
+#include <ESP8266WebServerSecure.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <TZ.h>
+
 #include <NoDelay.h>
+
+#include "config_ssl.h"
 
 namespace config {
 static const char html_mime_type[] PROGMEM = "text/html";
@@ -25,7 +29,11 @@ static const char update_min_css[] PROGMEM =
 template <typename S>
 struct configuration_server_t {
   configuration_server_t(S* settings)
-      : _server(80), _settings(settings), _configured(false) {
+      : _server_cache(5), _server(443), _settings(settings), _configured(false) {
+    _server.getServer().setRSACert(new BearSSL::X509List(config::server_cert),
+                                   new BearSSL::PrivateKey(config::server_key));
+    _server.getServer().setCache(&_server_cache);
+
     _server.on("/", [&]() {
       _server.send_P(200, config::html_mime_type, config::index_html);
     });
@@ -41,7 +49,7 @@ struct configuration_server_t {
     _server.begin();
 
     MDNS.begin(_settings->deviceID);
-    MDNS.addService("http", "tcp", 80);
+    MDNS.addService("https", "tcp", 443);
   }
 
   bool isConfigured() { return _configured; }
@@ -53,6 +61,8 @@ struct configuration_server_t {
     WiFi.softAP(settings->deviceID);
     println("Access Point " + settings->deviceID);
     println("IP " + WiFi.softAPIP().toString());
+
+    configTime(TZ_Etc_UTC, "pool.ntp.org");
 
     while (!server.isConfigured()) {
       server.loop();
@@ -138,7 +148,9 @@ struct configuration_server_t {
     return {};
   }
 
-  ESP8266WebServer _server;
+  BearSSL::ESP8266WebServerSecure _server;
+  BearSSL::ServerSessions _server_cache;
+
   S* _settings;
   bool _configured;
 };

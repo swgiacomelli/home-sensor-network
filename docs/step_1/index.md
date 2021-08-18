@@ -144,7 +144,7 @@ void loop() {
 
 ## Configuration Server
 
-If the device is not configured, a WiFi access point will be setup and a configuration webserver will be run to configure the device. The source code for the configuration server is in [config.h](../../src/esp8266_sensor/config.h) and uses the ESP8266WebServer library to setup a simple server. An html form is served with the auto-generated deviceID and a list of available WiFi networks injected by a separate [javascript file](../../src/esp8266_sensor/assets/config.js). This allows for the html and css files to be stored in the PROGMEM with only the smaller javascript file needed to be dynamically updated. The HTML files are stored under /src/esp8266_sensor/assets.
+If the device is not configured, a WiFi access point will be setup and a configuration webserver will be run to configure the device. The source code for the configuration server is in [config.h](../../src/esp8266_sensor/config.h) and uses the ESP8266WebServerSecure library to setup a simple server. An html form is served with the auto-generated deviceID and a list of available WiFi networks injected by a separate [javascript file](../../src/esp8266_sensor/assets/config.js). This allows for the html and css files to be stored in the PROGMEM with only the smaller javascript file needed to be dynamically updated. *The server certificate and key are stored in [config_ssl.h](../../src/esp8266_sensor/config_ssl.h) and should be regenerated using the [generate.sh](../../scripts/cert-gen/generate.sh) tool. The HTML files are stored under /src/esp8266_sensor/assets.
 
 * [index.html](../../src/esp8266_sensor/assets/index.max.html)
 * [config.css](../../src/esp8266_sensor/assets/config.css)
