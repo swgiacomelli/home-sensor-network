@@ -23,6 +23,20 @@ struct device_t {
   DeviceFunction _end;
 };
 
+#if defined(USE_ANALOG)
+#define ANALOG_DEVICE_SETUP                                        \
+  std::unique_ptr<mqtt_t<settings_t>> MQTT(new mqtt_t<settings_t>{ \
+      &Settings,                                                   \
+      {                                                            \
+          {USE_ANALOG, []() { return analogRead(A0); }},           \
+      }});
+
+#define ANALOG_DEVICE_START
+#else
+#define ANALOG_DEVICE_SETUP
+#define ANALOG_DEVICE_START
+#endif
+
 #if defined(USE_BME280)
 #define BME280_DEVICE_SETUP                                                 \
   device_t<Adafruit_BME280> BME280([](auto& d) { return d.begin(0x76); },   \
@@ -46,6 +60,6 @@ struct device_t {
 #define BME280_DEVICE_START
 #endif
 
-#define DEVICE_SETUP BME280_DEVICE_SETUP
+#define DEVICE_SETUP ANALOG_DEVICE_SETUP BME280_DEVICE_SETUP
 
-#define DEVICE_START BME280_DEVICE_START
+#define DEVICE_START ANALOG_DEVICE_START BME280_DEVICE_START
