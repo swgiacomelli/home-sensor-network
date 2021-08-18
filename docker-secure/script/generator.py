@@ -1,8 +1,7 @@
 from secrets import token_bytes, token_hex
 from base64 import b64encode
 from OpenSSL import crypto
-from datetime import date, datetime
-from subprocess import run
+from datetime import datetime
 
 def generate_influxdb_token():
     token = token_bytes(64)
@@ -70,5 +69,3 @@ with open("/script/influx_password.key", "wt") as f:
 
 with open("/script/grafana_password.key", "wt") as f:
     f.write(generate_password())
-
-run(["/bin/bash", "/script/gen_mqtt_certs.sh"])

@@ -1,10 +1,17 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ESP8266WiFi.h>
+
 #include <PubSubClient.h>
 
 #include <functional>
 #include <vector>
+
+#if defined(SECURE_MQTT)
+#include "mqtt_ssl.h"
+#include "wifi.h"
+#endif
 
 #define START_MQTT \
   MQTT->begin();   \
@@ -15,8 +22,17 @@ struct mqtt_topic_t;
 
 template <typename S>
 struct mqtt_t {
-  mqtt_t(Client& client, S* settings, std::vector<mqtt_topic_t<S>> topics)
-      : _client(client), _settings(settings), _topics(topics) {}
+  mqtt_t(S* settings, std::vector<mqtt_topic_t<S>> topics)
+      : _client(_network_client), _settings(settings), _topics(topics) {
+#if defined(SECURE_MQTT)
+    _clientCertList = new BearSSL::X509List(mqtt::client_cert);
+    _clientPrivKey = new BearSSL::PrivateKey(mqtt::client_key);
+    _trustedCA = new BearSSL::X509List(mqtt::server_ca);
+    _network_client.setClientRSACert(_clientCertList, _clientPrivKey);
+    _network_client.setTrustAnchors(_trustedCA);
+    _network_client.setInsecure();  // this is insecure
+#endif
+  }
 
   void begin() {
     _client.setServer(_settings->mqttServer.c_str(), _settings->mqttPort);
@@ -52,6 +68,14 @@ struct mqtt_t {
 
  private:
   PubSubClient _client;
+#if defined(SECURE_MQTT)
+  BearSSL::WiFiClientSecure _network_client;
+  BearSSL::X509List* _clientCertList;
+  BearSSL::PrivateKey* _clientPrivKey;
+  BearSSL::X509List* _trustedCA;
+#else
+  WiFiClient _network_client;
+#endif
   S* _settings;
   std::vector<mqtt_topic_t<S>> _topics;
 };

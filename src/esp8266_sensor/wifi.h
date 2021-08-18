@@ -2,10 +2,11 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <TZ.h>
+#include <time.h>
 
 #define WIFI_CONNECTION_TIMEOUT 180000
 #define WIFI_CONNECTION_DELAY 500
-#define WIFI_CLIENT_CLASS WiFiClient
 
 struct wifi_manager_t {
   template <typename S>
@@ -33,9 +34,25 @@ struct wifi_manager_t {
       }
     }
 
-    print("\r\nConnected - IP address: ");
+    print("\r\n");
+    SetupTime(print);
+
+    print("Connected - IP address: ");
     print(WiFi.localIP().toString());
     print("\r\n");
+  }
+
+  static void SetupTime(auto&& print) {
+    print("Setting time ");
+    configTime(TZ_Etc_UTC, "pool.ntp.org");
+    time_t now = time(nullptr);
+    while (now < 8 * 3600 * 2) {
+      delay(500);
+      print(".");
+      now = time(nullptr);
+    }
+    print("\r\n");
+    print("Time set\r\n");
   }
 };
 

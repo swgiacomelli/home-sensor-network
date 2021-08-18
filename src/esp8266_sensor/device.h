@@ -28,7 +28,6 @@ struct device_t {
   device_t<Adafruit_BME280> BME280([](auto& d) { return d.begin(0x76); },   \
                                    [](auto& d) { return true; });           \
   std::unique_ptr<mqtt_t<settings_t>> MQTT(new mqtt_t<settings_t>{          \
-      wifiClient,                                                           \
       &Settings,                                                            \
       {                                                                     \
           {"temperature",                                                   \

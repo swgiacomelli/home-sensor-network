@@ -6,20 +6,26 @@
 #include <FirebaseJson.h>
 #include <LittleFS.h>
 
+#if defined(SECURE_MQTT)
+#define MQTT_DEFAULT_PORT 8883
+#else
+#define MQTT_DEFAULT_PORT 1883
+#endif
+
 #define FILESYSTEM LittleFS
 #define DEVICE_ID_PREFIX "IOT_"
 #define SETTINGS_FILE "/settings.json"
 
 #define SETTING_DECL settings_t Settings;
 
-#define CONFIGURE_DEVICE                                    \
-  Serial.begin(115200);                                     \
-  Serial.println();                                         \
-  Settings.init();                                          \
-  if (Settings.deviceState == device_state::unconfigured) { \
-    configuration_server_t<settings_t>::Run(                \
-        &Settings, [](auto v) { Serial.println(v); });      \
-  }                                                         \
+#define CONFIGURE_DEVICE                                                      \
+  Serial.begin(115200);                                                       \
+  Serial.println();                                                           \
+  Settings.init();                                                            \
+  if (Settings.deviceState == device_state::unconfigured) {                   \
+    configuration_server_t<settings_t>::Run(&Settings,                        \
+                                            [](auto v) { Serial.print(v); }); \
+  }                                                                           \
   setupDevice();
 
 namespace {
@@ -47,7 +53,7 @@ struct settings_t {
   String mqttServer;
   String mqttUsername;
   String mqttPassword;
-  uint16_t mqttPort = 1883;
+  uint16_t mqttPort = MQTT_DEFAULT_PORT;
 
  private:
   bool _fsStarted = false;
@@ -173,7 +179,7 @@ struct settings_t {
     wifiPassword = "";
 
     mqttServer = "";
-    mqttPort = 1883;
+    mqttPort = MQTT_DEFAULT_PORT;
     mqttUsername = "";
     mqttPassword = "";
 

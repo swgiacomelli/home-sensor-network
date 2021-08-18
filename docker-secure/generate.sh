@@ -9,15 +9,6 @@ docker cp generator:/script/database.key ./database.key
 docker cp generator:/script/dashboard.crt ./dashboard.crt
 docker cp generator:/script/dashboard.key ./dashboard.key
 
-docker cp generator:/script/mqtt_ca.pem ./mqtt_ca.crt
-docker cp generator:/script/mqtt_ca-key.pem ./mqtt_ca.key
-
-docker cp generator:/script/mqtt_server.pem ./mqtt_server.crt
-docker cp generator:/script/mqtt_server-key.pem ./mqtt_server.key
-
-docker cp generator:/script/mqtt_client.pem ./mqtt_client.crt
-docker cp generator:/script/mqtt_client-key.pem ./mqtt_client.key
-
 docker cp generator:/script/telegraf.conf ./telegraf.conf
 
 docker cp generator:/script/influx_token.key ./influx_token.key

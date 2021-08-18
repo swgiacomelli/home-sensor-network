@@ -4,4 +4,4 @@ RUN apk add curl
 
 COPY ./src /
 
-CMD ["/gen_iot_server_certs.sh"]
+CMD ["/gen_iot_certs.sh"]

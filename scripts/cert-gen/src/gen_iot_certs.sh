@@ -25,3 +25,27 @@ cfssl gencert \
     -hostname=iot_server \
     -profile=iot iot_server-csr.json |
     cfssljson -bare iot_server
+
+cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config=ca-config.json \
+    -hostname=iot_server \
+    -profile=iot mqtt_server-csr.json |
+    cfssljson -bare mqtt_server
+
+cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config=ca-config.json \
+    -hostname=iot_server \
+    -profile=iot mqtt_iot_client-csr.json |
+    cfssljson -bare mqtt_iot_client
+
+cfssl gencert \
+    -ca=ca.pem \
+    -ca-key=ca-key.pem \
+    -config=ca-config.json \
+    -hostname=iot_server \
+    -profile=iot mqtt_telegraf_client-csr.json |
+    cfssljson -bare mqtt_telegraf_client
