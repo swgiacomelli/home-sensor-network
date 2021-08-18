@@ -81,11 +81,11 @@ Through the use of *magic* macros most of the detail of the software is obfuscat
 
 The first part of the code includes the various components:
 
-* Configuration Webserver (config.h)
-* Device Manager (device.h)
-* MQTT Manager (mqtt.h)
-* Settings Manager (settings.h)
-* Network/WiFi Manager (wifi.h)
+* Configuration Webserver ([config.h](../../src/esp8266_sensor/config.h))
+* Device Manager ([device.h](../../src/esp8266_sensor/device.h))
+* MQTT Manager ([mqtt.h](../../src/esp8266_sensor/mqtt.h))
+* Settings Manager ([settings.h](../../src/esp8266_sensor/settings.h))
+* Network/WiFi Manager ([wifi.h](../../src/esp8266_sensor/wifi.h))
   
 It also defines how long the device will go into deep sleep between readings ``DEVICE_SLEEP_SECONDS`` .
 

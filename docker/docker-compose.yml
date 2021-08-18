@@ -1,0 +1,54 @@
+version: "3.9"
+services:
+  mqtt_server:
+    image: eclipse-mosquitto:latest
+    volumes:
+      - "./mosquitto.conf:/mosquitto/config/mosquitto.conf"
+    expose:
+      - "1883"
+      - "9001"
+    ports:
+      - "0.0.0.0:1883:1883"
+  database:
+    image: influxdb:latest
+    environment: 
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: iot_user
+      DOCKER_INFLUXDB_INIT_PASSWORD: change_me
+      DOCKER_INFLUXDB_INIT_ORG: iot
+      DOCKER_INFLUXDB_INIT_BUCKET: data
+      DOCKER_INFLUXDB_INIT_RETENTION: 1w      
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: jK3BLJUWgUw7iBzkHlMCDaPcrccalB0yIAGapbgZgyz8mGDHHdbatGVdfOtiKtefh9yDw_D0KcpKM2cFiwEvQA==
+    volumes:
+      - influx_data:/var/lib/influxdb2
+      - influx_config:/etc/influxdb2
+    expose: 
+      - "8086"
+    ports:
+      - "8086:8086"
+  mqtt_consumer:
+    image: telegraf:latest
+    depends_on: 
+      - mqtt_server
+      - database
+    volumes:
+      - "./telegraf.conf:/etc/telegraf/telegraf.conf"
+  dashboard:
+      image: grafana/grafana:latest
+      environment: 
+        GF_SECURITY_ADMIN_USER: iot_user
+        GF_SECURITY_ADMIN_PASSWORD: change_me
+      depends_on: 
+        - database
+      volumes:
+      expose:
+        - "3000"
+      ports:
+        - "3000:3000"
+      volumes:
+        - grafana_data:/var/lib/grafana
+        - "./datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml"     
+volumes:
+  influx_data:
+  influx_config:
+  grafana_data:

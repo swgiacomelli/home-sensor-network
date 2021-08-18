@@ -2,7 +2,7 @@
 
 ## About
 
-This repository contains code and instructions to setup a simple home sensor network using [ESP82866](https://github.com/esp8266/Arduino) modules with the [Arduino IDE](https://www.arduino.cc/en/software) connected via an MQTT network backed by [Mosquito](https://mosquitto.org/), [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/), [InfluxDB](https://www.influxdata.com/products/influxdb/) and [Grafana](https://grafana.com/).
+This repository contains code and instructions to setup a simple home sensor network using [ESP82866](https://github.com/esp8266/Arduino) modules with the [Arduino IDE](https://www.arduino.cc/en/software) connected via an MQTT network backed by [Mosquitto](https://mosquitto.org/), [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/), [InfluxDB](https://www.influxdata.com/products/influxdb/) and [Grafana](https://grafana.com/).
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Finally the backend services via the MQTT server subscribe to the sensor data pu
 
 ### [Step 1 - Configuring Sensors](docs/step_1/index.md)
 
-### [Step 2 - Configuring Backend Services](docs/step_2/index.md) [TODO]
+### [Step 2 - Configuring Backend Services](docs/step_2/index.md)
 
 ### [Step 3 - Customizing Dashboards and Monitoring](docs/step_3/index.md) [TODO]
 
