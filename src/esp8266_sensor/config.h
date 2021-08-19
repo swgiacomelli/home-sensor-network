@@ -62,7 +62,7 @@ struct configuration_server_t {
     _server.onNotFound([&]() { on_not_found(); });
     _server.begin();
 
-    MDNS.begin(_settings->deviceID);
+    MDNS.begin(_settings->deviceID());
     MDNS.addService("https", "tcp", 443);
   }
 
@@ -74,9 +74,9 @@ struct configuration_server_t {
     print("Running configuration\r\n");
 
     settings->ensureDeviceID();
-    WiFi.softAP(settings->deviceID);
+    WiFi.softAP(settings->deviceID());
 
-    print("Access Point " + settings->deviceID + "\r\n");
+    print("Access Point " + settings->deviceID() + "\r\n");
     print("IP " + WiFi.softAPIP().toString() + "\r\n");
 
     while (!server.isConfigured()) {

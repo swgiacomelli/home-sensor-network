@@ -35,7 +35,7 @@ struct mqtt_t {
   }
 
   void begin() {
-    _client.setServer(_settings->mqttServer.c_str(), _settings->mqttPort);
+    _client.setServer(_settings->mqttServer().c_str(), _settings->mqttPort());
   }
 
   bool publish(const char* topic, const char* payload) {
@@ -43,7 +43,7 @@ struct mqtt_t {
   }
 
   bool publishState(bool state) {
-    String topic = "sensors/" + _settings->deviceID + "/state";
+    String topic = "sensors/" + _settings->deviceID() + "/state";
     return _client.publish(topic.c_str(), state ? "1" : "0");
   }
 
@@ -55,9 +55,9 @@ struct mqtt_t {
 
   void loop(auto&& pre, auto&& post) {
     if (!_client.connected()) {
-      _client.connect(_settings->deviceID.c_str(),
-                      _settings->mqttUsername.c_str(),
-                      _settings->mqttPassword.c_str());
+      _client.connect(_settings->deviceID().c_str(),
+                      _settings->mqttUsername().c_str(),
+                      _settings->mqttPassword().c_str());
     }
 
     if (_client.connected()) {
@@ -103,7 +103,7 @@ struct mqtt_topic_t {
   bool publish(mqtt_t<S>* mqtt) {
     String value = String(_read(), _precision);
     String topic =
-        "sensors/" + mqtt->getSettings()->deviceID + "/" + _topicName;
+        "sensors/" + mqtt->getSettings()->deviceID() + "/" + _topicName;
     return mqtt->publish(topic.c_str(), value.c_str());
   }
 
