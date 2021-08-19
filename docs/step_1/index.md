@@ -28,7 +28,6 @@ The following libraries are used by this sketch:
 * [Adafruit BME280 Library](https://github.com/adafruit/Adafruit_BME280_Library)
 * [PubSubClient](https://github.com/knolleary/pubsubclient)
 * [FirebaseJson](https://github.com/mobizt/FirebaseJson)
-* [NoDelay](https://github.com/M-tech-Creations/NoDelay)
 
 ## Main Sketch
 
