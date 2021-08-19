@@ -12,9 +12,10 @@
 #define MQTT_DEFAULT_PORT 1883
 #endif
 
+#define DEFAULT_DEVICE_SLEEP_SECONDS 45
+
 #define FILESYSTEM LittleFS
 #define DEVICE_ID_PREFIX "IOT_"
-#define SETTINGS_FILE "/settings.json"
 
 #define CONFIGURE_DEVICE                                                      \
   Serial.begin(115200);                                                       \
@@ -39,6 +40,10 @@ String generateDeviceID() {
 }
 }  // namespace
 
+namespace settings {
+const char settings_file[] = "/settings.json";
+}
+
 enum class device_state { unknown, unconfigured, configured };
 
 struct settings_t {
@@ -52,63 +57,92 @@ struct settings_t {
   String mqttUsername;
   String mqttPassword;
   uint16_t mqttPort = MQTT_DEFAULT_PORT;
+  int deviceSleepSeconds = DEFAULT_DEVICE_SLEEP_SECONDS;
+
+  long deviceSleep() { return deviceSleepSeconds * 1e6; }
+
+  void from_json(const String& data) {
+    FirebaseJson json;
+    auto get_value = [&json](const String& key) {
+      FirebaseJsonData result;
+      json.get(result, key);
+      return result;
+    };
+
+    json.setJsonData(data);
+
+    deviceID = get_value("deviceID").stringValue;
+
+    wifiSSID = get_value("wifiSSID").stringValue;
+    wifiPassword = get_value("wifiPassword").stringValue;
+
+    mqttServer = get_value("mqttServer").stringValue;
+
+    mqttPort = (uint16_t)get_value("mqttPort").intValue;
+    if (!mqttPort) {
+      mqttPort = (uint16_t)get_value("mqttPort").stringValue.toInt();
+    }
+
+    mqttUsername = get_value("mqttUsername").stringValue;
+    mqttPassword = get_value("mqttPassword").stringValue;
+
+    deviceSleepSeconds = get_value("deviceSleepSeconds").intValue;
+
+    // lazy merge
+    if (deviceSleepSeconds <= 0) {
+      deviceSleepSeconds = DEFAULT_DEVICE_SLEEP_SECONDS;
+    }
+
+    trim();
+  }
+
+  String to_json() {
+    FirebaseJson json;
+
+    json.set("deviceID", deviceID);
+
+    json.set("wifiSSID", wifiSSID);
+    json.set("wifiPassword", wifiPassword);
+
+    json.set("mqttServer", mqttServer);
+    json.set("mqttPort", mqttPort);
+    json.set("mqttUsername", mqttUsername);
+    json.set("mqttPassword", mqttPassword);
+
+    json.set("deviceSleepSeconds", deviceSleepSeconds);
+
+    String output;
+    json.toString(output);
+    return output;
+  }
+
+  void set_default_values() {
+    ensureDeviceID();
+
+    wifiSSID = "";
+    wifiPassword = "";
+
+    mqttServer = "";
+    mqttPort = MQTT_DEFAULT_PORT;
+    mqttUsername = "";
+    mqttPassword = "";
+
+    deviceSleepSeconds = DEFAULT_DEVICE_SLEEP_SECONDS;
+  }
 
  private:
   bool _fsStarted = false;
 
-  FirebaseJson _settingsDoc;
-
-  String getString(const String& key) {
-    FirebaseJsonData result;
-    if (!_settingsDoc.get(result, key)) {
-      return {};
-    }
-    return result.stringValue;
-  }
-
-  int getInt(const String& key) {
-    FirebaseJsonData result;
-    if (!_settingsDoc.get(result, key)) {
-      return {};
-    }
-    return result.intValue;
-  }
-
-  template <typename T>
-  void setValue(const String& key, const T& value) {
-    _settingsDoc.set(key, value);
-  }
-
-  void loadValues() {
-    deviceID = getString("deviceID");
-
-    wifiSSID = getString("wifiSSID");
-    wifiPassword = getString("wifiPassword");
-
-    mqttServer = getString("mqttServer");
-    mqttPort = (uint16_t)getInt("mqttPort");
-    mqttUsername = getString("mqttUsername");
-    mqttPassword = getString("mqttPassword");
-    trim();
-  }
-
-  void saveValues(auto& f) {
-    _settingsDoc.clear();
-    setValue("deviceID", deviceID);
-
-    setValue("wifiSSID", wifiSSID);
-    setValue("wifiPassword", wifiPassword);
-
-    setValue("mqttServer", mqttServer);
-    setValue("mqttPort", mqttPort);
-    setValue("mqttUsername", mqttUsername);
-    setValue("mqttPassword", mqttPassword);
-    String output;
-    _settingsDoc.toString(output);
-    f.print(output);
-  }
-
  public:
+  void trim() {
+    deviceID.trim();
+    wifiSSID.trim();
+    wifiPassword.trim();
+    mqttServer.trim();
+    mqttUsername.trim();
+    mqttPassword.trim();
+  }
+
   void init() {
     ensureDeviceID();
 
@@ -120,10 +154,9 @@ struct settings_t {
       _fsStarted = true;
     }
 
-    auto f = FILESYSTEM.open(SETTINGS_FILE, "r");
+    auto f = FILESYSTEM.open(settings::settings_file, "r");
     if (f) {
-      _settingsDoc.setJsonData(f.readString());
-      loadValues();
+      from_json(f.readString());
       f.close();
     } else {
       setUnconfigured();
@@ -152,14 +185,14 @@ struct settings_t {
       _fsStarted = true;
     }
 
-    auto f = FILESYSTEM.open(SETTINGS_FILE, "w");
+    auto f = FILESYSTEM.open(settings::settings_file, "w");
     if (!f) {
       setUnconfigured();
       return;
     }
 
-    saveValues(f);
-
+    auto output = to_json();
+    f.print(output);
     f.close();
 
     if (!validate()) {
@@ -171,33 +204,15 @@ struct settings_t {
   }
 
   void reset() {
-    ensureDeviceID();
-
-    wifiSSID = "";
-    wifiPassword = "";
-
-    mqttServer = "";
-    mqttPort = MQTT_DEFAULT_PORT;
-    mqttUsername = "";
-    mqttPassword = "";
-
+    set_default_values();
     save();
-  }
-
-  void trim() {
-    deviceID.trim();
-    wifiSSID.trim();
-    wifiPassword.trim();
-    mqttServer.trim();
-    mqttUsername.trim();
-    mqttPassword.trim();
   }
 
   bool validate() {
     trim();
-    return !(deviceID.isEmpty() || wifiSSID.isEmpty() ||
-             mqttServer.isEmpty()) &&
-           mqttPort > 0;
+
+    return !(deviceID.isEmpty() || wifiSSID.isEmpty() || mqttServer.isEmpty() ||
+             mqttPort <= 0 || deviceSleepSeconds <= 0);
   }
 
   void setUnconfigured() {

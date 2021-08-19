@@ -5,6 +5,8 @@
 #include <TZ.h>
 #include <time.h>
 
+#include <vector>
+
 #define WIFI_CONNECTION_TIMEOUT 180000
 #define WIFI_CONNECTION_DELAY 500
 
@@ -40,6 +42,24 @@ struct wifi_manager_t {
     print("Connected - IP address: ");
     print(WiFi.localIP().toString());
     print("\r\n");
+  }
+
+  static std::vector<String> ScanNetworks() {
+    auto networks = std::vector<String>{};
+
+    auto scanResult = WiFi.scanNetworks(false, false);
+    for (auto i = 0; i < scanResult; i++) {
+      String ssid;
+      int32_t rssi;
+      uint8_t encryptionType;
+      uint8_t* bssid;
+      int32_t channel;
+      bool hidden;
+      WiFi.getNetworkInfo(i, ssid, encryptionType, rssi, bssid, channel,
+                          hidden);
+      networks.push_back(ssid);
+    }
+    return networks;
   }
 
   static void SetupTime(auto&& print) {

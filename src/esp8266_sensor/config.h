@@ -4,50 +4,62 @@
 #include <ESP8266WebServerSecure.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <FirebaseJson.h>
 
-#include <NoDelay.h>
-
+#include "config_html.h"
 #include "config_ssl.h"
 
 namespace config {
 static const char html_mime_type[] PROGMEM = "text/html";
 static const char css_mime_type[] PROGMEM = "text/css";
-static const char index_html[] PROGMEM =
-    R"(<!DOCTYPE html><html><head> <meta charset='utf-8'> <meta http-equiv='X-UA-Compatible' content='IE=edge'> <title>Device Configuration</title> <meta name='viewport' content='width=device-width, initial-scale=1'> <link rel="stylesheet" href="/config.min.css"></head><body> <form method='POST' action='/update' enctype='multipart/form-data'> <h1>Device Configuration</h1> <fieldset> <legend>General</legend> <div><label for="deviceID">Device ID: <abbr title="required" aria-label="required">*</abbr></label><input type="text" name="deviceID" id="deviceID" autofocus="true" required><span></span> </div></fieldset> <fieldset> <legend>WIFI</legend> <div><label for="wifiSSID">SSID: <abbr title="required" aria-label="required">*</abbr></label><input type="text" name="wifiSSID" id="wifiSSID" list="wifiNetworks" required><span></span><datalist id="wifiNetworks"> </datalist></div><div><label for="wifiPassword">Password: <abbr title="required" aria-label="required">*</abbr></label><input type="password" name="wifiPassword" id="wifiPassword" required><span></span> </div></fieldset> <fieldset> <legend>MQTT</legend> <div><label for="mqttServer">Server:<abbr title="required" aria-label="required">*</abbr></label><input type="text" name="mqttServer" id="mqttServer" required><span></span></div><div><label for="mqttPort">Port: <abbr title="required" aria-label="required">*</abbr></label><input type="number" name="mqttPort" id="mqttPort" required><span></span></div><div><label for="mqttUsername">Username:</label><input type="text" name="mqttUsername" id="mqttUsername" placeholder="Blank For Anonymous"></div><div><label for="mqttPassword">Password: </label><input type="password" name="mqttPassword" id="mqttPassword" placeholder="Blank For Anonymous"></div></fieldset> <div class="button"><button type="submit">Update</button></div></form> <script src="/config.min.js"></script></body></html>)";
-static const char config_min_css[] PROGMEM =
-    R"(body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;font-size: small;}h1 {margin: 0;text-align: center;}form {margin: 0 auto;width: 500px;padding: 1em;border: 1px solid #CCC;border-radius: 1em;}form div+div {margin-top: 1em;}label {display: inline-block;width: 90px;text-align: right;margin-right: 1em;}legend {font-weight: bold;}input {font-size: 1em;width: 300px;box-sizing: border-box;border: 1px solid #999;box-shadow: inset 1px 1px 3px #ccc;border-radius: 5px;}input:required {border: 1px solid black;}input:optional {border: 1px solid silver;}input:focus {border-color: #000;}input+span {position: relative;}input+span::before {position: absolute;right: -20px;top: 5px;}input:invalid {border: 2px solid red;}input:invalid+span::before {content: '✖';color: red;}input:valid+span::before {content: '✓';color: green;}.button {margin-top: 1em;display: flex;justify-content: flex-end;}button {margin-left: .5em;display: block;box-sizing: border-box;border-radius: 5px;background: linear-gradient(to bottom, #eee, #ccc);}button:hover {background: linear-gradient(to bottom, #fff, #ddd);})";
-static const char config_min_js[] PROGMEM =
-    R"(document.getElementById("deviceID").setAttribute("value",deviceID),document.getElementById("mqttPort").setAttribute("value",mqttPort), document.getElementById("wifiNetworks").innerHTML=networks.map(e=>"<option>"+e+"</option>").join("");)";
+static const char js_mime_type[] PROGMEM = "application/javascript";
+static const char json_mime_type[] PROGMEM = "application/json";
 
-static const char update_html[] PROGMEM =
-    R"(<!DOCTYPE html><html><head> <meta charset='utf-8'> <meta http-equiv='X-UA-Compatible' content='IE=edge'> <title>Device Configuration</title> <meta name='viewport' content='width=device-width, initial-scale=1'> <link rel="stylesheet" href="/update.min.css"></head><body> <div> <h1>Device Configuration</h1> <p>Configuration Successful</p><p>Device Going to Sensor Mode</p></div></body></html>)";
-static const char update_min_css[] PROGMEM =
-    R"(body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;font-size: small;}h1 {margin: 0;}div {margin: 0 auto;width: 500px;padding: 1em;border: 1px solid #CCC;border-radius: 1em;text-align: center;})";
+static const char header_connection[] PROGMEM = "Connection";
+static const char header_connection_close[] PROGMEM = "close";
+
+static const char update_success_message[] PROGMEM =
+    R"({"success":true, "message":"Device successfully updated - going to sensor mode."})";
+static const char update_failed_message[] PROGMEM =
+    R"({"success":false, "message":"Error configuring device - check settings."})";
 }  // namespace config
 
 template <typename S>
 struct configuration_server_t {
   configuration_server_t(S* settings)
-      : _server_cache(5), _server(443), _settings(settings), _configured(false) {
+      : _server_cache(5),
+        _server(443),
+        _settings(settings),
+        _configured(false) {
     _server.getServer().setRSACert(new BearSSL::X509List(config::server_cert),
                                    new BearSSL::PrivateKey(config::server_key));
     _server.getServer().setCache(&_server_cache);
 
-    _server.on("/", [&]() {
-      _server.sendHeader("Connection", "close");
+    _server.on("/", HTTP_GET, [&]() {
+      _server.sendHeader(config::header_connection,
+                         config::header_connection_close);
       _server.send_P(200, config::html_mime_type, config::index_html);
     });
-    _server.on("/config.min.css", [&]() {
-      _server.sendHeader("Connection", "close");
-      _server.send_P(200, config::css_mime_type, config::config_min_css);
+
+    _server.on("/config.css", HTTP_GET, [&]() {
+      _server.sendHeader(config::header_connection,
+                         config::header_connection_close);
+      _server.send_P(200, config::css_mime_type, config::config_css);
     });
-    _server.on("/config.min.js", [&]() { onConfigJS(); });
-    _server.on("/update.min.css", [&]() {
-      _server.sendHeader("Connection", "close");
-      _server.send_P(200, config::css_mime_type, config::update_min_css);
+
+    _server.on("/config.js", HTTP_GET, [&]() {
+      _server.sendHeader(config::header_connection,
+                         config::header_connection_close);
+      _server.send_P(200, config::js_mime_type, config::config_js);
     });
-    _server.on("/update", HTTP_POST, [&]() { onUpdate(); });
-    _server.onNotFound([&]() { onNotFound(); });
+
+    _server.on("/values", HTTP_GET, [&]() { on_values(); });
+
+    _server.on("/networks", HTTP_GET, [&]() { on_networks(); });
+
+    _server.on("/update", HTTP_POST, [&]() { on_update(); });
+
+    _server.onNotFound([&]() { on_not_found(); });
     _server.begin();
 
     MDNS.begin(_settings->deviceID);
@@ -58,99 +70,81 @@ struct configuration_server_t {
 
   static void Run(S* settings, auto&& print) {
     auto server = configuration_server_t(settings);
-    
+
     print("Running configuration\r\n");
-    
+
     settings->ensureDeviceID();
     WiFi.softAP(settings->deviceID);
-    
+
     print("Access Point " + settings->deviceID + "\r\n");
     print("IP " + WiFi.softAPIP().toString() + "\r\n");
-    
+
     while (!server.isConfigured()) {
       server.loop();
       yield();
     }
 
-    noDelay resetDelay(60000);
-    resetDelay.start();
-    while (!resetDelay.update()) {
-      server.loop();
-      yield();
-    }
-
+    delay(10000);
     ESP.reset();
   }
 
  private:
-  void loop() { _server.handleClient(); }
-  void onConfigJS() {
-    String message;
-    message += "var deviceID=\"";
-    message += _settings->deviceID;
-    message += "\";var mqttPort=";
-    message += _settings->mqttPort;
-    message += ";var networks=[";
-
-    auto scanResult = WiFi.scanNetworks(false, false);
-    for (int8_t i = 0; i < scanResult; i++) {
-      String ssid;
-      int32_t rssi;
-      uint8_t encryptionType;
-      uint8_t* bssid;
-      int32_t channel;
-      bool hidden;
-      WiFi.getNetworkInfo(i, ssid, encryptionType, rssi, bssid, channel,
-                          hidden);
-      message += "\"" + ssid + "\"";
-      if (i != scanResult - 1) {
-        message += ",";
-      }
-    }
-    message += "];";
-    message += config::config_min_js;
-    _server.send(200, "application/javascript", message);
+  void loop() {
+    _server.handleClient();
+    MDNS.update();
   }
 
-  void onUpdate() {
-    _settings->deviceID = readArg("deviceID");
+  void on_networks() {
+    FirebaseJsonArray networks;
+    String network_list;
 
-    _settings->wifiSSID = readArg("wifiSSID");
-    _settings->wifiPassword = readArg("wifiPassword");
+    for (auto& network : wifi_manager_t::ScanNetworks()) {
+      networks.add(network);
+    }
 
-    _settings->mqttServer = readArg("mqttServer");
-    _settings->mqttPort = (uint16_t)readArg("mqttPort").toInt();
-    _settings->mqttUsername = readArg("mqttUsername");
-    _settings->mqttPassword = readArg("mqttPassword");
+    networks.toString(network_list);
+    _server.sendHeader(config::header_connection,
+                       config::header_connection_close);
+    _server.send(200, config::json_mime_type, network_list);
+  }
 
-    _settings->trim();
+  void on_values() {
+    auto values = _settings->to_json();
+    _server.sendHeader(config::header_connection,
+                       config::header_connection_close);
+    _server.send(200, config::json_mime_type, values);
+  }
+
+  void on_update() {
+    auto client = _server.client();
+
+    if (_server.hasArg("plain")) {
+      auto values = _server.arg("plain");
+      _settings->from_json(values);
+    }
+
+    _server.sendHeader(config::header_connection,
+                       config::header_connection_close);
 
     if (_settings->validate()) {
       _settings->save();
-      _server.send_P(200, config::html_mime_type, config::update_html);
+      _server.send_P(200, config::json_mime_type,
+                     config::update_success_message);
       _configured = true;
     } else {
-      _server.sendHeader("Location", "/");
-      _server.send(303, "text/plain",
-                   "Configuration Errors\nReturning to Configuration");
+      _server.send_P(200, config::json_mime_type,
+                     config::update_failed_message);
     }
   }
 
-  void onNotFound() {
+  void on_not_found() {
     String message = "File Not Found\n";
     message += "URI: ";
     message += _server.uri();
     message += "\n";
+    _server.sendHeader(config::header_connection,
+                       config::header_connection_close);
     _server.send(404, "text/plain", message);
-  }
-
-  String readArg(const String& name) {
-    if (_server.hasArg(name)) {
-      auto value = _server.arg(name);
-      value.trim();
-      return value;
-    }
-    return {};
   }
 
   BearSSL::ESP8266WebServerSecure _server;

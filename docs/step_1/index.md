@@ -37,22 +37,16 @@ The main sensor software sketch is as follows:
 ```cpp
 #define USE_BME280
 
-#include <ESP8266WiFi.h>
+#include "wifi.h"
 
 #include "config.h"
 #include "device.h"
 #include "mqtt.h"
 #include "settings.h"
-#include "wifi.h"
 
-#define DEVICE_SLEEP_SECONDS 45
-#define DEVICE_SLEEP (DEVICE_SLEEP_SECONDS * 1e6)
 #define DEVICE_SLEEP_DELAY 1000
 #define SENSOR_WAKE_UP_DELAY 1000
-#define SENSOR_THROTTLE 30000
-
-WIFI_CLIENT_CLASS wifiClient;
-SETTING_DECL
+#define SENSOR_THROTTLE 15000
 
 DEVICE_SETUP
 
@@ -71,7 +65,7 @@ void loop() {
   MQTT->loop();
   delay(DEVICE_SLEEP_DELAY);
 
-  ESP.deepSleep(DEVICE_SLEEP);
+  ESP.deepSleep(Settings.deviceSleep());
   // code after this line will not execute if deepSleep is working correctly
   delay(SENSOR_THROTTLE);
 }
@@ -92,28 +86,24 @@ It also defines how long the device will go into deep sleep between readings ``D
 Finally the first definition ``#define USE_BME280`` specifies that the software will configure itself to use the BME280 sensor. *Again BME280 and BMP280 are used interchangeably.*
 
 ```cpp
-#define USE_BME280
+define USE_BME280
 
-#include <ESP8266WiFi.h>
+#include "wifi.h"
 
 #include "config.h"
 #include "device.h"
 #include "mqtt.h"
 #include "settings.h"
-#include "wifi.h"
 
-#define DEVICE_SLEEP_SECONDS 45
-#define DEVICE_SLEEP (DEVICE_SLEEP_SECONDS * 1e6)
 #define DEVICE_SLEEP_DELAY 1000
 #define SENSOR_WAKE_UP_DELAY 1000
-#define SENSOR_THROTTLE 30000
+#define SENSOR_THROTTLE 15000
 ```
 
 The second part of the sketch sets up the device as well as declaring global variables, Particularly, ``DEVICE_SETUP`` configures a BME280 device and creates the MQTT topics for temperature, humidity, and pressure. The macro ``CONFIGURE DEVICE`` decides if the device has been configured, if not it runs the configuration webserver otherwise ``void setupDevice()1`` is called to configure the device to publish sensor readings.
 
 ```cpp
 WIFI_CLIENT_CLASS wifiClient;
-SETTING_DECL
 
 DEVICE_SETUP
 
@@ -144,13 +134,24 @@ void loop() {
 
 ## Configuration Server
 
-If the device is not configured, a WiFi access point will be setup and a configuration webserver will be run to configure the device. The source code for the configuration server is in [config.h](../../src/esp8266_sensor/config.h) and uses the ESP8266WebServerSecure library to setup a simple server. An html form is served with the auto-generated deviceID and a list of available WiFi networks injected by a separate [javascript file](../../src/esp8266_sensor/assets/config.js). This allows for the html and css files to be stored in the PROGMEM with only the smaller javascript file needed to be dynamically updated. *The server certificate and key are stored in [config_ssl.h](../../src/esp8266_sensor/config_ssl.h) and should be regenerated using the [generate.sh](../../scripts/cert-gen/generate.sh) tool. The HTML files are stored under /src/esp8266_sensor/assets.
+If the device is not configured, a WiFi access point will be setup and a configuration webserver will be run to configure the device. The source code for the configuration server is in [config.h](../../src/esp8266_sensor/config.h) and uses ESP8266WebServerSecure to setup a simple server. Three static files are served and three endpoints are exposed.
 
-* [index.html](../../src/esp8266_sensor/assets/index.max.html)
-* [config.css](../../src/esp8266_sensor/assets/config.css)
-* [config.js](../../src/esp8266_sensor/assets/config.js)
-* [update.html](../../src/esp8266_sensor/assets/update.max.html)
-* [update.css](../../src/esp8266_sensor/assets/update.css)
+The static files are:
+
+* [index.html](../../src/config_html/static/index.html)
+* [config.js](../../src/config_html/static/config.js)
+* [config.css](../../src/config_html/static/config.css)
+
+And the exposed endpoints are:
+
+* **/values** - which sends the current settings as a json object.
+* **/networks** - which sends the detected WiFi networks as a json array.
+* **/update** - which accepts the configuration form values as a json object and returns a json encoded message indicating if the device was able to be configured.
+
+A test server is provided as [test.py](../../src/config_html/test.py) which runs in a Docker container to simulate the configuration server for testing.
+
+The server makes use of the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to load the configuration values, the list of networks and to send the configuration values back to the configuration server to be updated on the device. Additionally the [FormData API](https://developer.mozilla.org/en-US/docs/Web/API/FormData) is used to capture the configuration form values.
+
 
 ## Device Manager
 

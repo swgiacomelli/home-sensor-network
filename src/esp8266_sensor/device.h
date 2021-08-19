@@ -53,7 +53,7 @@ struct device_t {
 #define BME280_DEVICE_START               \
   if (!BME280.start()) {                  \
     Serial.println("BME280 not working"); \
-    ESP.deepSleep(3600e6);                \
+    ESP.deepSleep(0);                     \
   }
 #else
 #define BME280_DEVICE_SETUP

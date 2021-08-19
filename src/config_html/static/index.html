@@ -6,11 +6,11 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <title>Device Configuration</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel="stylesheet" href="/config.min.css">
+    <link rel="stylesheet" href="config.css">
 </head>
 
 <body>
-    <form method='POST' action='/update' enctype='multipart/form-data'>
+    <form id="deviceConfigurationForm">
         <h1>Device Configuration</h1>
         <fieldset>
             <legend>General</legend>
@@ -27,21 +27,30 @@
             <div><label for="wifiPassword">Password: <abbr title="required" aria-label="required">*</abbr></label><input
                     type="password" name="wifiPassword" id="wifiPassword" required><span></span>
             </div>
+
         </fieldset>
         <fieldset>
             <legend>MQTT</legend>
             <div><label for="mqttServer">Server:<abbr title="required" aria-label="required">*</abbr></label><input
                     type="text" name="mqttServer" id="mqttServer" required><span></span></div>
             <div><label for="mqttPort">Port: <abbr title="required" aria-label="required">*</abbr></label><input
-                    type="number" name="mqttPort" id="mqttPort" value="1883" required><span></span></div>
+                    type="number" name="mqttPort" id="mqttPort" required><span></span></div>
             <div><label for="mqttUsername">Username:</label><input type="text" name="mqttUsername" id="mqttUsername"
                     placeholder="Blank For Anonymous"></div>
             <div><label for="mqttPassword">Password: </label><input type="password" name="mqttPassword"
                     id="mqttPassword" placeholder="Blank For Anonymous"></div>
         </fieldset>
-        <div class="button"><button type="submit">Update</button></div>
+        <div class="button"><button onclick="load_networks();" id="refreshNetworkButton" type="button">Refresh
+                Networks</button><button type="submit">Update</button></div>
     </form>
-    <script src="/config.min.js"></script>
+    <div id="resultsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h1>Device Status</h1>
+            <p id="resultsOutput"></p>
+        </div>
+    </div>
+    <script src="config.js"></script>
 </body>
 
 </html>

@@ -42,6 +42,11 @@ struct mqtt_t {
     return _client.publish(topic, payload);
   }
 
+  bool publishState(bool state) {
+    String topic = "sensors/" + _settings->deviceID + "/state";
+    return _client.publish(topic.c_str(), state ? "1" : "0");
+  }
+
   S* getSettings() { return _settings; }
 
   void loop() {
@@ -57,9 +62,13 @@ struct mqtt_t {
 
     if (_client.connected()) {
       pre();
+      bool results = true;
       for (auto& topic : _topics) {
-        topic.publish(this);
+        if (!topic.publish(this)) {
+          results = false;
+        }
       }
+      publishState(!_topics.empty() && results);
       post();
     }
 
