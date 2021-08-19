@@ -126,7 +126,7 @@ void loop() {
   MQTT->loop();
   delay(DEVICE_SLEEP_DELAY);
 
-  ESP.deepSleep(DEVICE_SLEEP);
+  ESP.deepSleep(Settings.deviceSleep());
   // code after this line will not execute if deepSleep is working correctly
   delay(SENSOR_THROTTLE);
 }
