@@ -99,7 +99,7 @@ define USE_BME280
 #define SENSOR_THROTTLE 15000
 ```
 
-The second part of the sketch sets up the device as well as declaring global variables, Particularly, ``DEVICE_SETUP`` configures a BME280 device and creates the MQTT topics for temperature, humidity, and pressure. The macro ``CONFIGURE DEVICE`` decides if the device has been configured, if not it runs the configuration webserver otherwise ``void setupDevice()1`` is called to configure the device to publish sensor readings.
+The second part of the sketch sets up the device as well as declaring global variables, Particularly, ``DEVICE_SETUP`` configures a BME280 device and creates the MQTT topics for temperature, humidity, and pressure. The macro ``CONFIGURE DEVICE`` decides if the device has been configured, if not it runs the configuration webserver otherwise ``void setupDevice()`` is called to configure the device to publish sensor readings.
 
 ```cpp
 DEVICE_SETUP
