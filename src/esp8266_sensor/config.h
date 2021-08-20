@@ -20,8 +20,6 @@
 
 #include <Arduino.h>
 #include <ESP8266WebServerSecure.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
 
 #include "config_html.h"
 #include "config_ssl.h"
@@ -83,8 +81,7 @@ struct configuration_server_t {
     _server.onNotFound([&]() { on_not_found(); });
     _server.begin();
 
-    MDNS.begin(_settings->deviceID());
-    MDNS.addService("https", "tcp", 443);
+    wifi_manager_t::BeginMDNS(settings->deviceID(), {{"https", "tcp", 443}});
   }
 
   bool isConfigured() { return _configured; }
@@ -94,11 +91,10 @@ struct configuration_server_t {
 
     print("Running configuration\r\n");
 
-    settings->ensureDeviceID();
-    WiFi.softAP(settings->deviceID());
-
-    print("Access Point " + settings->deviceID() + "\r\n");
-    print("IP " + WiFi.softAPIP().toString() + "\r\n");
+    if (!wifi_manager_t::SetupAP(settings, print)) {
+      print("Failed to setup access point.\r\n");
+      ESP.deepSleep(0);
+    }
 
     while (!server.isConfigured()) {
       server.loop();
@@ -112,7 +108,7 @@ struct configuration_server_t {
  private:
   void loop() {
     _server.handleClient();
-    MDNS.update();
+    wifi_manager_t::UpdateMDNS();
   }
 
   void on_networks() {

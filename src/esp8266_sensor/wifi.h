@@ -20,13 +20,21 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <TZ.h>
 #include <time.h>
 
 #include <vector>
 
 #define WIFI_CONNECTION_TIMEOUT 180000
+
 #define WIFI_CONNECTION_DELAY 500
+
+struct mdns_service_t {
+  String service;
+  String proto;
+  uint16_t port;
+};
 
 struct wifi_manager_t {
   template <typename S>
@@ -62,6 +70,23 @@ struct wifi_manager_t {
     print("\r\n");
   }
 
+  template <typename S>
+  static bool SetupAP(S* settings, auto&& print) {
+    settings->ensureDeviceID();
+    if (!WiFi.softAP(settings->deviceID())) {
+      return false;
+    }
+
+    print("Access Point ");
+    print(settings->deviceID());
+    print("\r\n");
+    print("IP ");
+    print(WiFi.softAPIP().toString());
+    print("\r\n");
+
+    return true;
+  }
+
   static std::vector<String> ScanNetworks() {
     auto networks = std::vector<String>{};
 
@@ -79,6 +104,32 @@ struct wifi_manager_t {
     }
     return networks;
   }
+
+  static bool BeginMDNS(const String& hostname) { return MDNS.begin(hostname); }
+
+  static bool BeginMDNS(const String& hostname,
+                        std::vector<mdns_service_t> services) {
+    auto results = BeginMDNS(hostname);
+    if (!results) {
+      return results;
+    }
+
+    for (const auto& service : services) {
+      results = AddMDNSService(service.service, service.proto, service.port);
+      if (!results) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static bool AddMDNSService(const String& service,
+                             const String& proto,
+                             const uint16_t port) {
+    return MDNS.addService(service, proto, port);
+  }
+
+  static void UpdateMDNS() { MDNS.update(); }
 
   static void SetupTime(auto&& print) {
     print("Setting time ");
