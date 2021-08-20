@@ -21,22 +21,15 @@
 #include <Arduino.h>
 #include <ESP8266WebServerSecure.h>
 
+#include "web_server_impl.h"
+
 #include "config_html.h"
-#include "config_ssl.h"
 
 #include "wifi.h"
 
 #include "json.h"
 
 namespace config {
-static const char html_mime_type[] PROGMEM = "text/html";
-static const char css_mime_type[] PROGMEM = "text/css";
-static const char js_mime_type[] PROGMEM = "application/javascript";
-static const char json_mime_type[] PROGMEM = "application/json";
-
-static const char header_connection[] PROGMEM = "Connection";
-static const char header_connection_close[] PROGMEM = "close";
-
 static const char update_success_message[] PROGMEM =
     R"({"success":true, "message":"Device successfully updated - going to sensor mode."})";
 static const char update_failed_message[] PROGMEM =
@@ -45,42 +38,41 @@ static const char update_failed_message[] PROGMEM =
 
 template <typename S>
 struct configuration_server_t {
+  configuration_server_t() = delete;
+
   configuration_server_t(S* settings)
-      : _server_cache(5),
-        _server(443),
+      : _web_server(
+            {
+                {"/", HTTP_GET,
+                 [](web_server_t& server) {
+                   server.send_html_P(200, config::index_html);
+                 }},
+                {"/config.css", HTTP_GET,
+                 [](web_server_t& server) {
+                   server.send_css_P(200, config::config_css);
+                 }},
+                {"/config.js", HTTP_GET,
+                 [](web_server_t& server) {
+                   server.send_js_P(200, config::config_js);
+                 }},
+                {"/networks", HTTP_GET,
+                 [](web_server_t& server) {
+                   auto network_list =
+                       json_t::as_json_array(wifi_manager_t::ScanNetworks());
+                   server.send_json(200, network_list);
+                 }},
+                {"/values", HTTP_GET,
+                 [&](web_server_t& server) {
+                   auto values = _settings->to_json();
+                   server.send_json(200, values);
+                 }},
+                {"/update", HTTP_POST,
+                 [&](web_server_t& server) { on_update(server); }},
+            },
+            web_server_t::on_not_found),
         _settings(settings),
         _configured(false) {
-    _server.getServer().setRSACert(new BearSSL::X509List(config::server_cert),
-                                   new BearSSL::PrivateKey(config::server_key));
-    _server.getServer().setCache(&_server_cache);
-
-    _server.on("/", HTTP_GET, [&]() {
-      _server.sendHeader(config::header_connection,
-                         config::header_connection_close);
-      _server.send_P(200, config::html_mime_type, config::index_html);
-    });
-
-    _server.on("/config.css", HTTP_GET, [&]() {
-      _server.sendHeader(config::header_connection,
-                         config::header_connection_close);
-      _server.send_P(200, config::css_mime_type, config::config_css);
-    });
-
-    _server.on("/config.js", HTTP_GET, [&]() {
-      _server.sendHeader(config::header_connection,
-                         config::header_connection_close);
-      _server.send_P(200, config::js_mime_type, config::config_js);
-    });
-
-    _server.on("/values", HTTP_GET, [&]() { on_values(); });
-
-    _server.on("/networks", HTTP_GET, [&]() { on_networks(); });
-
-    _server.on("/update", HTTP_POST, [&]() { on_update(); });
-
-    _server.onNotFound([&]() { on_not_found(); });
-    _server.begin();
-
+    _web_server.begin();
     wifi_manager_t::BeginMDNS(settings->deviceID(), {{"https", "tcp", 443}});
   }
 
@@ -107,59 +99,24 @@ struct configuration_server_t {
 
  private:
   void loop() {
-    _server.handleClient();
+    _web_server.loop();
     wifi_manager_t::UpdateMDNS();
   }
 
-  void on_networks() {
-    auto network_list = json_t::as_json_array(wifi_manager_t::ScanNetworks());
-    _server.sendHeader(config::header_connection,
-                       config::header_connection_close);
-    _server.send(200, config::json_mime_type, network_list);
-  }
-
-  void on_values() {
-    auto values = _settings->to_json();
-    _server.sendHeader(config::header_connection,
-                       config::header_connection_close);
-    _server.send(200, config::json_mime_type, values);
-  }
-
-  void on_update() {
-    auto client = _server.client();
-
-    if (_server.hasArg("plain")) {
-      auto values = _server.arg("plain");
-      _settings->from_json(values);
-    }
-
-    _server.sendHeader(config::header_connection,
-                       config::header_connection_close);
+  void on_update(web_server_t& server) {
+    auto values = server.request_body();
+    _settings->from_json(values);
 
     if (_settings->validate()) {
       _settings->save();
-      _server.send_P(200, config::json_mime_type,
-                     config::update_success_message);
+      server.send_json_P(200, config::update_success_message);
       _configured = true;
     } else {
-      _server.send_P(200, config::json_mime_type,
-                     config::update_failed_message);
+      server.send_json_P(200, config::update_failed_message);
     }
   }
 
-  void on_not_found() {
-    String message = "File Not Found\n";
-    message += "URI: ";
-    message += _server.uri();
-    message += "\n";
-    _server.sendHeader(config::header_connection,
-                       config::header_connection_close);
-    _server.send(404, "text/plain", message);
-  }
-
-  BearSSL::ESP8266WebServerSecure _server;
-  BearSSL::ServerSessions _server_cache;
-
+  web_server_t _web_server;
   S* _settings;
   bool _configured;
 };

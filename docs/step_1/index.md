@@ -149,7 +149,6 @@ A test server is provided as [test.py](../../src/config_html/test.py) which runs
 
 The server makes use of the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to load the configuration values, the list of networks and to send the configuration values back to the configuration server to be updated on the device. Additionally the [FormData API](https://developer.mozilla.org/en-US/docs/Web/API/FormData) is used to capture the configuration form values.
 
-
 ## Device Manager
 
 The device manager is defined in [device.h](../../src/esp8266_sensor/device.h) and it exists to abstract away the details of any library being used to interface with connected devices. For this sketch the BMP280 is being used as the connected device and the macros ``DEVICE_SETUP`` and ``DEVICE_START`` are used to abstract the implementation details. The Adafruit BME280 library is being for the BME280 device interface. *Note: the setup macro specifies that the BME280 is using the alternate address 0x76, other devices might use the primary address in which case the code on line 28 should change to:

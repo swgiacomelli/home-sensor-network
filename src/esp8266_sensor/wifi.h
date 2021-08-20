@@ -109,14 +109,12 @@ struct wifi_manager_t {
 
   static bool BeginMDNS(const String& hostname,
                         std::vector<mdns_service_t> services) {
-    auto results = BeginMDNS(hostname);
-    if (!results) {
-      return results;
+    if (!BeginMDNS(hostname)) {
+      return false;
     }
 
-    for (const auto& service : services) {
-      results = AddMDNSService(service.service, service.proto, service.port);
-      if (!results) {
+    for (const auto& s : services) {
+      if (!AddMDNSService(s.service, s.proto, s.port)) {
         return false;
       }
     }
