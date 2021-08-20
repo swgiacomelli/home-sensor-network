@@ -1,13 +1,34 @@
+// Home Sensor Network
+// Copyright (C) 2021 Steven Giacomelli (steve@giacomelli.ca)
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// config.h defines the configuration server.
+
 #pragma once
 
 #include <Arduino.h>
 #include <ESP8266WebServerSecure.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <FirebaseJson.h>
 
 #include "config_html.h"
 #include "config_ssl.h"
+
+#include "wifi.h"
+
+#include "json.h"
 
 namespace config {
 static const char html_mime_type[] PROGMEM = "text/html";
@@ -95,14 +116,7 @@ struct configuration_server_t {
   }
 
   void on_networks() {
-    FirebaseJsonArray networks;
-    String network_list;
-
-    for (auto& network : wifi_manager_t::ScanNetworks()) {
-      networks.add(network);
-    }
-
-    networks.toString(network_list);
+    auto network_list = json_t::as_json_array(wifi_manager_t::ScanNetworks());
     _server.sendHeader(config::header_connection,
                        config::header_connection_close);
     _server.send(200, config::json_mime_type, network_list);

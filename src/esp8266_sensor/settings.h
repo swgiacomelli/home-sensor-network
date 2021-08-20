@@ -1,10 +1,29 @@
+// Home Sensor Network
+// Copyright (C) 2021 Steven Giacomelli (steve@giacomelli.ca)
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// settings.h abstracts away configuration settings management.
+
 #pragma once
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <FS.h>
-#include <FirebaseJson.h>
 #include <LittleFS.h>
+
+#include "json.h"
 
 #if defined(SECURE_MQTT)
 #define MQTT_DEFAULT_PORT 8883
@@ -101,40 +120,30 @@ struct settings_t {
   void deviceSleepSeconds(const int value) { _deviceSleepSeconds = value; }
 
   void from_json(const String& data) {
-    FirebaseJson json;
-    auto get_value = [&json](const String& key) {
-      FirebaseJsonData result;
-      json.get(result, key);
-      return result;
-    };
-
-    json.setJsonData(data);
-
-    deviceID(get_value("deviceID").stringValue);
-
-    wifiSSID(get_value("wifiSSID").stringValue);
-    wifiPassword(get_value("wifiPassword").stringValue);
-
-    mqttServer(get_value("mqttServer").stringValue);
-
-    mqttPort((uint16_t)get_value("mqttPort").intValue);
-    if (!mqttPort()) {
-      mqttPort((uint16_t)get_value("mqttPort").stringValue.toInt());
+    json_t json;
+    if (!json.loads(data)) {
+      return;
     }
 
-    mqttUsername(get_value("mqttUsername").stringValue);
-    mqttPassword(get_value("mqttPassword").stringValue);
+    json.get_if_exists<String>("deviceID", [&](auto v) { deviceID(v); });
 
-    deviceSleepSeconds(get_value("deviceSleepSeconds").intValue);
+    json.get_if_exists<String>("wifiSSID", [&](auto v) { wifiSSID(v); });
+    json.get_if_exists<String>("wifiPassword",
+                               [&](auto v) { wifiPassword(v); });
 
-    // lazy merge
-    if (deviceSleepSeconds() <= 0) {
-      deviceSleepSeconds(DEFAULT_DEVICE_SLEEP_SECONDS);
-    }
+    json.get_if_exists<String>("mqttServer", [&](auto v) { mqttServer(v); });
+    json.get_if_exists<int>("mqttPort", [&](auto v) { mqttPort(v); });
+    json.get_if_exists<String>("mqttUsername",
+                               [&](auto v) { mqttUsername(v); });
+    json.get_if_exists<String>("mqttPassword",
+                               [&](auto v) { mqttPassword(v); });
+
+    json.get_if_exists<int>("deviceSleepSeconds",
+                            [&](auto v) { deviceSleepSeconds(v); });
   }
 
   String to_json() {
-    FirebaseJson json;
+    json_t json;
 
     json.set("deviceID", deviceID());
 
@@ -148,9 +157,7 @@ struct settings_t {
 
     json.set("deviceSleepSeconds", deviceSleepSeconds());
 
-    String output;
-    json.toString(output);
-    return output;
+    return json.dumps();
   }
 
   void set_default_values() {
